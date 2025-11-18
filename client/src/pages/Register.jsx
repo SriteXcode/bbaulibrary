@@ -30,10 +30,10 @@ export default function Register() {
     };
 
     return (
-        <div className="container">
-            <h2>Register</h2>
-            <p className="message">{message}</p>
-            <form onSubmit={handleSubmit} className="auth-form">
+        <div className="container mx-auto p-8 max-w-lg">
+            <h2 className="text-3xl font-extrabold text-gray-900 mb-6 text-center">Register</h2>
+            <p className="text-red-600 text-center mb-4 font-medium">{message}</p>
+            <form onSubmit={handleSubmit} className="bg-white shadow-xl rounded-xl p-8 space-y-4 auth-form">
                 <input
                     type="text"
                     name="name"
@@ -41,6 +41,7 @@ export default function Register() {
                     value={formData.name}
                     onChange={handleChange}
                     required
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"
                 />
                 <input
                     type="email"
@@ -49,6 +50,7 @@ export default function Register() {
                     value={formData.email}
                     onChange={handleChange}
                     required
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"
                 />
                 <input
                     type="password"
@@ -57,14 +59,18 @@ export default function Register() {
                     value={formData.password}
                     onChange={handleChange}
                     required
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"
                 />
-                <select name="role" value={formData.role} onChange={handleChange}>
+                {/* <select name="role" value={formData.role} onChange={handleChange}>
                     <option value="student">Student</option>
                     <option value="faculty">Faculty</option>
-                    {/* Librarian accounts will typically be created by an admin and not via public register */}
-                </select>
-                <button type="submit">Register</button>
+                </select> */}
+                <button 
+                    type="submit" 
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition duration-150 shadow-md"
+                >Register</button>
             </form>
         </div>
     );
+
 }

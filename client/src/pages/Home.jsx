@@ -7,16 +7,16 @@ export default function Home() {
       {/* Hero Section */}
       <img src="https://ik.imagekit.io/nx2mu5rdoc/dummy/bbau-satellite-campus-tikarmafi-sultanpur-universities-F5qm5mLNwE.avif" className='h-96 w-full absolute' alt="" />
       <div className="h-96 text-gray-800 z-100 relative">
-        <div className="bg-opacity-50 h-full flex flex-col justify-center items-center">
-          <h1 className="text-5xl font-bold mb-4 text-blue-900">Babasaheb Bhimrao Ambedkar University Library</h1>
-          <p className="text-xl mb-8 text-blue-900">Your gateway to knowledge and information.</p>
-          <div className="w-full max-w-md">
+        <div className="bg-opacity-50 bg-linear-to-r from-cyan-500/30 to-blue-500/30 h-full flex flex-col md:items-center md:justify-center lg:items-center lg:justify-center">
+          <h1 className="text-2xl mt-4 font-bold text-center text-blue-900 text-shadow-red-100 md:text-shadow-red-100 md:font-bold md:mb-4 md:text-blue-900 md:text-4xl lg:text-5xl xl:text-6xl ">Babasaheb Bhimrao Ambedkar University Library</h1>
+          <p className="text-center text-xl mb-8 text-white">Your gateway to knowledge and information.</p>
+          {/* <div className="w-full max-w-md">
             <input
               type="text"
               placeholder="Search for books, journals, and more..."
               className="w-full p-4 rounded-full text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-red-100"
             />
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -46,12 +46,12 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="border-l-4 border-red-500 pl-4">
               <h3 className="text-xl font-bold mb-2">New Library Timings</h3>
-              <p className="text-gray-600">The library will now be open from 9 AM to 8 PM on all working days.</p>
+              <p className="text-gray-600">The library will now be open from 10 AM to 5 PM on all working days.</p>
             </div>
-            <div className="border-l-4 border-red-500 pl-4">
+            {/* <div className="border-l-4 border-red-500 pl-4">
               <h3 className="text-xl font-bold mb-2">Online Workshop on Research Skills</h3>
               <p className="text-gray-600">Join our online workshop on 25th October to enhance your research skills.</p>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
@@ -60,7 +60,7 @@ export default function Home() {
       <footer className="bg-gray-900 text-white py-8">
         <div className="container mx-auto px-4 text-center">
           <p>&copy; 2025 Babasaheb Bhimrao Ambedkar University. All rights reserved.</p>
-          <p>Contact us: library@bbau.ac.in</p>
+          <p>...</p>
         </div>
       </footer>
     </div>
