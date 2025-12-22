@@ -7,8 +7,8 @@ export default function Home() {
       {/* Hero Section */}
       <img src="https://ik.imagekit.io/nx2mu5rdoc/dummy/bbau-satellite-campus-tikarmafi-sultanpur-universities-F5qm5mLNwE.avif" className='h-96 w-full absolute' alt="" />
       <div className="h-96 text-gray-800 z-100 relative">
-        <div className="bg-opacity-50 bg-linear-to-r from-cyan-500/30 to-blue-500/30 h-full flex flex-col md:items-center md:justify-center lg:items-center lg:justify-center">
-          <h1 className="text-2xl mt-4 font-bold text-center text-blue-900 text-shadow-red-100 md:text-shadow-red-100 md:font-bold md:mb-4 md:text-blue-900 md:text-4xl lg:text-5xl xl:text-6xl ">Babasaheb Bhimrao Ambedkar University Library</h1>
+        <div className="bg-opacity-50 bg-linear-to-r from-cyan-500/30 to-blue-500/30 h-full flex flex-col md:items-center md:justify-center md:bg-linear-to-r from-cyan-500/30 to-blue-500/30 lg:items-center lg:bg-linear-to-r from-cyan-500/30 to-blue-500/30 lg:justify-center">
+          <h1 className="text-2xl mt-4 font-bold text-center text-blue-900 text-shadow-red-100 md:text-shadow-red-100 md:font-bold md:mb-4 md:text-blue-900 md:text-4xl lg:text-5xl xl:text-5xl ">Babasaheb Bhimrao Ambedkar University Library</h1>
           <p className="text-center text-xl mb-8 text-white">Your gateway to knowledge and information.</p>
           {/* <div className="w-full max-w-md">
             <input

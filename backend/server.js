@@ -7,7 +7,7 @@ const app = express();
 // app.use(cors());
 // // allowed cors https://bbaulibrary.onrender.com
 app.use(cors({
-  origin: "https://bbaulibrary.onrender.com, ",
+  origin: "https://bbaulibrary.onrender.com",
   credentials: true
 }));
 
