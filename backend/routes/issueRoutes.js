@@ -406,34 +406,94 @@ router.get("/myissues", protect, async (req, res) => {
 });
 
 // --------------------
-// Admin: get all issues with search & filter
+// Admin: get all issues with search & filter & pagination
 // --------------------
 router.get("/", protect, authorize("admin"), async (req, res) => {
   try {
     const { search, status } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25;
+    const skip = (page - 1) * limit;
 
-    // Start with status filter
-    const filter = {};
+    let pipeline = [];
+
+    // 1. Status Filter (pre-lookup if possible, but fields are on root doc)
     if (status) {
       const statusArray = status.split(",");
-      filter.status = { $in: statusArray };
+      pipeline.push({ $match: { status: { $in: statusArray } } });
     }
 
-    // Fetch issues with populated student and book
-    let issues = await Issue.find(filter).populate("book student");
+    // 2. Lookup Relations
+    pipeline.push(
+      {
+        $lookup: {
+          from: "books",
+          localField: "book",
+          foreignField: "_id",
+          as: "book",
+        },
+      },
+      { $unwind: { path: "$book", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "student",
+          foreignField: "_id",
+          as: "student",
+        },
+      },
+      { $unwind: { path: "$student", preserveNullAndEmptyArrays: true } }
+    );
 
-    // If search query exists, filter in JS
+    // 3. Search Filter (Regex on looked-up fields)
     if (search) {
-      const regex = new RegExp(search, "i"); // case-insensitive
-      issues = issues.filter(
-        (issue) =>
-          (issue.book?.title && regex.test(issue.book.title)) ||
-          (issue.book?.isbn && regex.test(issue.book.isbn)) ||
-          (issue.student?.name && regex.test(issue.student.name))
-      );
+      const regex = new RegExp(search, "i");
+      pipeline.push({
+        $match: {
+          $or: [
+            { "book.title": regex },
+            { "book.isbn": regex },
+            { "student.name": regex },
+          ],
+        },
+      });
     }
 
-    res.json(issues);
+    // 4. Sort: Pending (0) -> Issued (1) -> Returned (2) -> Default (3)
+    // Then by createdAt desc
+    pipeline.push({
+      $addFields: {
+        statusWeight: {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$status", "pending"] }, then: 1 },
+              { case: { $eq: ["$status", "issued"] }, then: 2 },
+              { case: { $eq: ["$status", "returned"] }, then: 3 },
+            ],
+            default: 4,
+          },
+        },
+      },
+    });
+
+    pipeline.push({ $sort: { statusWeight: 1, createdAt: -1 } });
+
+    // 5. Facet for Count and Data
+    const results = await Issue.aggregate([
+      ...pipeline,
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [{ $skip: skip }, { $limit: limit }],
+        },
+      },
+    ]);
+
+    const total = results[0].metadata[0]?.total || 0;
+    const issues = results[0].data;
+    const hasMore = total > skip + issues.length;
+
+    res.json({ issues, total, hasMore, page });
   } catch (err) {
     console.error("Admin fetch issues error:", err);
     res.status(500).json({ msg: "Server error" });

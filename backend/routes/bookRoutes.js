@@ -97,36 +97,70 @@ const router = express.Router();
 //     }
 // });
 
-router.get('/', async (req, res) => {
-  const { q, 
-    // category, 
-    department } = req.query;
-  const query = {};
-
-  // 🔍 Case-insensitive search (no case sensitivity)
-  if (q) {
-    query.$or = [
-      { title: { $regex: q, $options: 'i' } },
-      { author: { $regex: q, $options: 'i' } },
-    //   { isbn: { $regex: q, $options: 'i' } },
-    ];
-  }
-
-  // 🏷️ Filter by category (optional)
-//   if (category && category !== 'all') {
-//     query.category = category;
-//   }
-
-  // 🏫 Filter by department (optional)
-  if (department && department !== 'all') {
-    query.department = department;
-  }
-
+// --- PUBLIC ROUTE: GET all books (Search/List/Pagination) ---
+// GET /api/books?q=search&department=dept&page=1&limit=25
+router.get("/", async (req, res) => {
   try {
-    const books = await Book.find(query);
-    res.json(books);
+    console.log("🔍 GET /api/books Query:", req.query); // Debug Log
+
+    const { q, department } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25;
+    const skip = (page - 1) * limit;
+
+    const pipeline = [];
+
+    // Helper to escape regex special characters
+    const escapeRegex = (text) => {
+      return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+    };
+
+    // 1. Build Match Stage
+    const matchStage = {};
+
+    if (q) {
+      const regex = new RegExp(escapeRegex(q), "i");
+      matchStage.$or = [
+        { title: regex },
+        { author: regex },
+        // { isbn: regex } // Uncomment if needed
+      ];
+    }
+
+    if (department && department !== "all") {
+      matchStage.department = department;
+    }
+
+    // Log the match filter to see what's being queried
+    if (Object.keys(matchStage).length > 0) {
+      console.log("🔎 Match Stage:", JSON.stringify(matchStage, null, 2));
+      pipeline.push({ $match: matchStage });
+    } else {
+      console.log("🔎 Match Stage: (Empty - Fetching All)");
+    }
+
+    // 2. Facet Stage for Pagination & Count
+    pipeline.push({
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [{ $skip: skip }, { $limit: limit }],
+      },
+    });
+
+    const results = await Book.aggregate(pipeline);
+
+    // Debug the raw result from MongoDB
+    // console.log("📊 Aggregation Result Metadata:", results[0]?.metadata);
+    // console.log("📚 Books Found in Page:", results[0]?.data?.length);
+
+    const total = results[0].metadata[0]?.total || 0;
+    const books = results[0].data;
+    const hasMore = total > skip + books.length;
+
+    res.json({ books, total, page, hasMore });
   } catch (err) {
-    res.status(500).json({ error: 'Error fetching books: ' + err.message });
+    console.error("Fetch books error:", err);
+    res.status(500).json({ error: "Error fetching books: " + err.message });
   }
 });
 

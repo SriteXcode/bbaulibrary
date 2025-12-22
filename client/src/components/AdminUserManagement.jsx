@@ -80,11 +80,11 @@ const AdminUserManagement  = () => {
 
     return (
         <div className="p-4">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-800">User Account Management</h3>
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-800 text-center sm:text-left">User Account Management</h3>
                 <button
                     onClick={fetchUsers}
-                    className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150"
+                    className="w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150"
                 >
                     Refresh Users
                 </button>

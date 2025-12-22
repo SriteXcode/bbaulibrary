@@ -642,19 +642,31 @@ const AdminIssueManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showFineModal, setShowFineModal] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [submittedQuery, setSubmittedQuery] = useState("");
+  
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
-  // Fetch issues with search and filter
-  const fetchIssues = async (query = "", status = "") => {
+  // Fetch issues with pagination
+  const fetchIssues = async (currentPage, query = "", status = "") => {
     setLoading(true);
     try {
       const res = await API.get("/api/issues", {
-        params: { search: query, status },
+        params: { search: query, status, page: currentPage, limit: 25 },
       });
-      setIssues(res.data);
+      
+      const { issues: newIssues, hasMore: more } = res.data;
+
+      if (currentPage === 1) {
+        setIssues(newIssues);
+      } else {
+        setIssues((prev) => [...prev, ...newIssues]);
+      }
+      setHasMore(more);
     } catch (err) {
       console.error(err);
       setMessage("Error fetching issues");
@@ -662,19 +674,35 @@ const AdminIssueManagement = () => {
       setLoading(false);
     }
   };
-// ✅ New Handler: Runs when the Enter key is pressed
+
+  // Effect: Fetch when page, query, or filter changes
+  useEffect(() => {
+    fetchIssues(page, submittedQuery, statusFilter);
+  }, [page, submittedQuery, statusFilter]);
+
+  // Handlers
   const handleSearchSubmit = (e) => {
     if (e.key === 'Enter') {
-      // 1. Update the official submitted query state
+      setPage(1);
       setSubmittedQuery(searchQuery); 
-      // 2. Fetch results immediately with the current state
-      fetchIssues(searchQuery, statusFilter);
     }
   };
-  // Live search: fetch on searchQuery or statusFilter change
-  useEffect(() => {
-    fetchIssues(submittedQuery, statusFilter);
-  }, [statusFilter]);
+
+  const handleStatusChange = (e) => {
+    setPage(1);
+    setStatusFilter(e.target.value);
+  };
+
+  const handleLoadMore = () => {
+    if (!loading && hasMore) {
+      setPage((prev) => prev + 1);
+    }
+  };
+
+  const refreshList = () => {
+    setPage(1);
+    fetchIssues(1, submittedQuery, statusFilter);
+  };
 
   // ---- ACTION HANDLER ----
   const handleAction = async (issueId, actionType, fine = 0) => {
@@ -700,9 +728,13 @@ const AdminIssueManagement = () => {
 
     setMessage(`${actionName}...`);
     try {
-      await API.put(route, {});
+      const res = await API.put(route, {});
       setMessage(`${actionName} complete!`);
-      fetchIssues(searchQuery, statusFilter);
+      
+      // Update local state
+      const updatedIssue = actionType === "approve" ? res.data : res.data.issue;
+      setIssues((prev) => prev.map((i) => (i._id === issueId ? updatedIssue : i)));
+
     } catch (err) {
       setMessage(`Action failed: ${err.response?.data?.msg || "Check backend"}`);
     }
@@ -717,11 +749,17 @@ const AdminIssueManagement = () => {
 
     setMessage("Processing fine and approving return...");
     try {
+      // 1. Pay Fine
       await API.put(fineRoute, { amountPaid: selectedIssue.fine });
-      await API.put(returnRoute, { fineCleared: true });
-
+      // 2. Return Book
+      const res = await API.put(returnRoute, { fineCleared: true });
+      
+      const updatedIssue = res.data.issue;
       setMessage("✅ Fine cleared and return approved successfully!");
-      fetchIssues(searchQuery, statusFilter);
+
+      // Update local state
+      setIssues((prev) => prev.map((i) => (i._id === selectedIssue._id ? updatedIssue : i)));
+
     } catch (err) {
       setMessage(`❌ Error: ${err.response?.data?.msg || "Something went wrong."}`);
     } finally {
@@ -750,29 +788,33 @@ const AdminIssueManagement = () => {
   const formatDate = (date) => (date ? new Date(date).toLocaleDateString() : "—");
   const isLate = (issue) => issue.status === "issued" && new Date(issue.dueDate) < new Date();
 
-  if (loading) return <div className="text-center py-10 text-gray-500">Loading records...</div>;
-
   return (
-    <div className="px-4 sm:px-8">
+    <div className="px-4 sm:px-8 pb-10">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
-        <h3 className="text-2xl font-bold text-gray-800">Issue & Request Records</h3>
+      <div className="flex flex-col xl:flex-row justify-between items-center mb-6 gap-4">
+        <h3 className="text-xl sm:text-2xl font-bold text-gray-800 text-center xl:text-left">Issue & Request Records</h3>
 
         {/* Search & Filter */}
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 items-center w-full xl:w-auto">
+           <button
+            onClick={refreshList}
+            className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-3 rounded"
+            title="Reload List"
+          >
+            Refresh
+          </button>
           <input
             type="text"
             placeholder="Search by username, book title, ISBN..."
             value={searchQuery}
-            // onChange={(e) => set(e.target.value)}
             onChange={(e) => setSearchQuery(e.target.value)} 
             onKeyDown={handleSearchSubmit}
-            className="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+            className="w-full sm:w-64 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
           />
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+            onChange={handleStatusChange}
+            className="w-full sm:w-auto p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
           >
             <option value="">All Status</option>
             <option value="pending">Pending</option>
@@ -799,11 +841,11 @@ const AdminIssueManagement = () => {
 
       {/* Issue List */}
       <div className="space-y-4">
-        {issues.length === 0 && !loading && (
+        {(!issues || issues.length === 0) && !loading && (
           <div className="text-center py-10 text-gray-500">No issue records found.</div>
         )}
 
-        {issues.map((issue) => (
+        {issues && issues.map((issue) => (
           <div
             key={issue._id}
             className={`bg-white shadow-md rounded-lg p-5 border-l-8 transition duration-300 ${
@@ -894,6 +936,20 @@ const AdminIssueManagement = () => {
           </div>
         ))}
       </div>
+      
+      {/* Load More Button */}
+      {loading && <div className="text-center py-4 text-gray-500">Loading...</div>}
+      
+      {!loading && hasMore && (
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={handleLoadMore}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition transform hover:scale-105"
+          >
+            Load More Results
+          </button>
+        </div>
+      )}
 
       {/* Fine Confirmation Modal */}
       {showFineModal && selectedIssue && (

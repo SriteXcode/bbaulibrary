@@ -340,15 +340,15 @@ const AdminBookUpload = () => {
 
   return (
     <div className="p-4">
-      <h3 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">
+      <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6 border-b pb-2">
         Book Inventory Management
       </h3>
 
       {/* Mode Toggle */}
-      <div className="mb-6 flex space-x-4">
+      <div className="mb-6 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
         <button
           onClick={() => setIsBulk(true)}
-          className={`px-6 py-2 rounded-lg font-semibold transition duration-150 ${
+          className={`w-full sm:w-auto px-6 py-2 rounded-lg font-semibold transition duration-150 ${
             isBulk ? "bg-red-600 text-white shadow-md" : "bg-gray-200 text-gray-800 hover:bg-gray-300"
           }`}
         >
@@ -356,7 +356,7 @@ const AdminBookUpload = () => {
         </button>
         <button
           onClick={() => setIsBulk(false)}
-          className={`px-6 py-2 rounded-lg font-semibold transition duration-150 ${
+          className={`w-full sm:w-auto px-6 py-2 rounded-lg font-semibold transition duration-150 ${
             !isBulk ? "bg-red-600 text-white shadow-md" : "bg-gray-200 text-gray-800 hover:bg-gray-300"
           }`}
         >

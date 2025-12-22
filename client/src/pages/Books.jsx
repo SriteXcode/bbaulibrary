@@ -11,36 +11,62 @@ export default function Books() {
   const [categories, setCategories] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [category, setCategory] = useState("");
+  // const [category, setCategory] = useState("");
   const [department, setDepartment] = useState("");
   const [message, setMessage] = useState({ text: "", type: "" });
+  
+  // Pagination & Loading State
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // ✅ Fetch books with filters
-  const fetchBooks = async (filters = {}) => {
+  // ✅ Fetch books with filters & pagination
+  const fetchBooks = async (currentPage = 1, reset = false) => {
+    setLoading(true);
     try {
       const queryParams = new URLSearchParams({
-        q: filters.searchQuery || "",
-        category: filters.category || "",
-        department: filters.department || "",
+        q: searchQuery || "",
+        // category: category || "",
+        department: department || "",
+        page: currentPage,
+        limit: 25
       }).toString();
 
       const res = await API.get(`/api/books?${queryParams}`);
-      setBooks(res.data);
+      
+      // robust data extraction
+      const data = res.data || {};
+      const newBooks = Array.isArray(data.books) ? data.books : [];
+      const more = !!data.hasMore;
+
+      if (reset) {
+        setBooks(newBooks);
+        setPage(1);
+      } else {
+        setBooks((prev) => [...(prev || []), ...newBooks]);
+        setPage(currentPage);
+      }
+      setHasMore(more);
       setMessage({ text: "", type: "" });
     } catch (err) {
       console.error(err);
       setMessage({ text: "Failed to fetch books.", type: "error" });
+      if (reset) setBooks([]); // Ensure books is valid array on error
+    } finally {
+      setLoading(false);
     }
   };
 
   // ✅ Fetch available categories and departments dynamically
   const fetchFilters = async () => {
     try {
-      const [catRes, depRes] = await Promise.all([
-        API.get("/api/books/categories"),
+      const [
+        // catRes, 
+        depRes] = await Promise.all([
+        // API.get("/api/books/categories"),
         API.get("/api/books/departments"),
       ]);
-      setCategories(catRes.data || []);
+      // setCategories(catRes.data || []);
       setDepartments(depRes.data || []);
     } catch (err) {
       console.error("Failed to fetch filter data:", err);
@@ -49,22 +75,27 @@ export default function Books() {
 
   // ✅ Initial load
   useEffect(() => {
-    fetchBooks();
     fetchFilters();
+    // Initial fetch handled by the filter effect below
   }, []);
 
   // ✅ Auto-update books when search/filter changes (with debounce)
   useEffect(() => {
     const delay = setTimeout(() => {
-      fetchBooks({ searchQuery, 
-        // category,
-         department });
+      fetchBooks(1, true); // Reset to page 1
     }, 500); // 0.5s debounce
 
     return () => clearTimeout(delay);
   }, [searchQuery, 
     // category,
      department]);
+
+  // ✅ Load More Handler
+  const handleLoadMore = () => {
+    if (!loading && hasMore) {
+      fetchBooks(page + 1, false);
+    }
+  };
 
   // ✅ Handle book request
   const handleRequest = async (bookId, title) => {
@@ -92,22 +123,10 @@ export default function Books() {
   };
 
   return (
-    <div className="container mx-auto px-6 py-10">
+    <div className="container mx-auto px-6 py-10 pb-20">
       <h2 className="text-4xl font-extrabold text-gray-900 mb-6 border-b-4 border-red-600 inline-block pb-2">
         📚 Book Catalog
       </h2>
-
-      {/* Debug Info */}
-      {/* <p className="text-sm text-gray-500 mb-4">
-        Logged in:{" "}
-        <span className="font-semibold">
-          {isLoggedIn ? "Yes ✅" : "No ❌"}
-        </span>{" "}
-        | Role:{" "}
-        <span className="font-semibold">
-          {userRole ? userRole : "Not loaded yet..."}
-        </span>
-      </p> */}
 
       {/* 🔍 Search + Filters */}
       <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 mb-8">
@@ -119,20 +138,6 @@ export default function Books() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
         />
-
-        {/* Dynamic Category Filter */}
-        {/* <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-        >
-          <option value="">All Categories</option>
-          {categories.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
-        </select> */}
 
         {/* Dynamic Department Filter */}
         {/* <select
@@ -165,14 +170,13 @@ export default function Books() {
       )}
 
       {/* 📖 Book List */}
-      {books.length === 0 ? (
+      {(!books || books.length === 0) && !loading ? (
         <p className="text-gray-600 text-center mt-10 text-lg">
           No books found. Try changing search or filters.
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {books.map((b) => (
-            // console.log("jqnd", b)
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-8">
+          {books && books.map((b) => (
             <div
               key={b._id}
               className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-transform duration-300 hover:-translate-y-1 border border-gray-200"
@@ -196,12 +200,6 @@ export default function Books() {
                     {b.copiesAvailable}
                   </span>
                 </p>
-                {/* <p className="text-xs text-gray-500 mb-2">
-                  ISBN: {b.isbn || "N/A"}
-                </p>
-                <p className="text-xs text-gray-500 mb-2">
-                  Category: {b.category || "N/A"}
-                </p> */}
                 {/* <p className="text-xs text-gray-500 mb-4">
                   Department: {b.department || "N/A"}
                 </p> */}
@@ -223,6 +221,25 @@ export default function Books() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 🌀 Loader */}
+      {loading && (
+        <div className="flex justify-center items-center py-6">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-red-600"></div>
+        </div>
+      )}
+
+      {/* 🔽 Load More Button */}
+      {!loading && hasMore && (
+        <div className="flex justify-center pt-4">
+          <button
+            onClick={handleLoadMore}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105"
+          >
+            Load More Books
+          </button>
         </div>
       )}
     </div>

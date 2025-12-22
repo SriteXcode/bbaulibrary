@@ -182,13 +182,13 @@ export default function LibrarianDashboard() {
             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`;
 
     return (
-        <div className="container mx-auto p-8">
-            <h2 className="text-4xl font-extrabold text-gray-900 border-b-4 border-red-600 pb-3 mb-8">
+        <div className="container mx-auto px-4 sm:px-8 py-8">
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-gray-900 border-b-4 border-red-600 pb-3 mb-8">
                 Admin Control Panel
             </h2>
 
-            {/* Tab Navigation (Tailwind) */}
-            <div className="flex bg-gray-50 rounded-xl shadow-inner overflow-hidden mb-8">
+            {/* Tab Navigation (Responsive) */}
+            <div className="flex flex-col sm:flex-row bg-gray-50 rounded-xl shadow-inner overflow-hidden mb-8">
                 <div className={tabClasses('requests')} onClick={() => setActiveTab('requests')}>
                     Issue Management
                 </div>
@@ -201,7 +201,7 @@ export default function LibrarianDashboard() {
             </div>
 
             {/* Content Area */}
-            <div className="bg-white shadow-2xl rounded-xl p-6 min-h-[600px]">
+            <div className="bg-white shadow-2xl rounded-xl p-4 sm:p-6 min-h-[600px]">
                 {renderContent()}
             </div>
             
