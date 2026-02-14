@@ -30,7 +30,7 @@ export default function Home() {
             <p className="text-gray-600">Explore our vast collection of books and resources.</p>
           </Link>
           <Link to="/my-issues" className="bg-white p-8 rounded-lg shadow-lg hover:shadow-2xl transition-shadow duration-300 transform hover:-translate-y-1">
-            <h3 className="text-2xl font-bold mb-2 text-red-600">My Issues</h3>
+            <h3 className="text-2xl font-bold mb-2 text-red-600">My Issued</h3>
             <p className="text-gray-600">View your borrowed books and due dates.</p>
           </Link>
           <a href="#" className="bg-white p-8 rounded-lg shadow-lg hover:shadow-2xl transition-shadow duration-300 transform hover:-translate-y-1">

@@ -1,8 +1,22 @@
 @import "tailwindcss";
 
+/* Define the Krutidev Font */
+@font-face {
+  font-family: 'Kruti Dev 010';
+  src: url('/fonts/K010.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.font-kruti {
+  font-family: 'Kruti Dev 010', sans-serif !important;
+  font-size: 1.2rem; /* Krutidev usually looks smaller, so we bump it up */
+}
+
 body {
   background-image: url('https://via.placeholder.com/1000x480');
   background-size: cover;
   background-position: center;
+  background-attachment: fixed;
   background-attachment: fixed;
 }
