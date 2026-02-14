@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import API from "../api";
 import useAuth from "../hooks/useAuth";
+import { isKrutidev } from "../utils/hindiConverter";
 
 export default function Books() {
   const auth = useAuth();
@@ -136,7 +137,7 @@ export default function Books() {
           placeholder="Search by Title or Author"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+          className={`flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ${isKrutidev(searchQuery) ? 'font-kruti' : ''}`}
         />
 
         {/* Dynamic Department Filter */}
@@ -182,10 +183,10 @@ export default function Books() {
               className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-transform duration-300 hover:-translate-y-1 border border-gray-200"
             >
               <div className="p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                <h3 className={`text-lg font-bold text-gray-900 mb-1 ${isKrutidev(b.title) ? 'font-kruti' : ''}`}>
                   {b.title}
                 </h3>
-                <p className="text-sm text-gray-600 italic mb-3">
+                <p className={`text-sm text-gray-600 italic mb-3 ${isKrutidev(b.author) ? 'font-kruti' : ''}`}>
                   by {b.author}
                 </p>
                 <p className="text-sm font-medium mb-2">

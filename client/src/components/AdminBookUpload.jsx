@@ -150,6 +150,7 @@
 import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import API from "../api";
+import { isKrutidev } from "../utils/hindiConverter";
 
 const AdminBookUpload = () => {
   const [isBulk, setIsBulk] = useState(true);
@@ -237,17 +238,31 @@ const AdminBookUpload = () => {
 
         // Map data to match Book model
         const validData = parsedData
-          .filter((row) => row.title && row.totalCopies)
-          .map((row) => ({
-            title: row.title,
-            author: row.author || "",
-            // isbn: row.isbn || "",
-            // category: row.category || "",
-            totalCopies: Number(row.totalCopies),
-            copiesAvailable: row.copiesAvailable
-              ? Math.min(Number(row.copiesAvailable), Number(row.totalCopies))
-              : Number(row.totalCopies),
-          }));
+          .filter((row) => (row.title || row.Title) && (row.totalCopies || row.totalcopies || row.copiesAvailable))
+          .map((row) => {
+            const getField = (keys) => {
+              const key = keys.find(k => row[k] !== undefined);
+              return row[key] !== undefined ? String(row[key]).trim() : "";
+            };
+
+            const convert = (val) => {
+              // Return raw value from Excel without any conversion
+              return val ? String(val).trim() : "";
+            };
+
+            const total = Number(getField(["totalCopies", "totalcopies", "Total Copies", "copies"])) || 1;
+            const available = getField(["copiesAvailable", "available", "Available"]) 
+              ? Math.min(Number(getField(["copiesAvailable", "available", "Available"])), total)
+              : total;
+
+            return {
+              title: convert(getField(["title", "Title", "TITLE"])),
+              author: convert(getField(["author", "Author", "AUTHOR"])),
+              department: convert(getField(["department", "Department", "DEPARTMENT"])),
+              totalCopies: total,
+              copiesAvailable: available,
+            };
+          });
 
         if (validData.length === 0) {
           setError("No valid rows with required fields found.");
@@ -280,6 +295,12 @@ const AdminBookUpload = () => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(e.type === "dragenter" || e.type === "dragover");
+  };
+
+  const handleTableChange = (index, field, value) => {
+    const updatedData = [...excelData];
+    updatedData[index][field] = value;
+    setExcelData(updatedData);
   };
 
   // Handle submission
@@ -389,6 +410,14 @@ const AdminBookUpload = () => {
               </button>
             </div>
 
+            {uploadMode === "excel" && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                <span className="text-sm font-medium text-blue-800">
+                  <span className="font-bold">Info:</span> Hindi (Krutidev) text will be auto-detected and displayed correctly.
+                </span>
+              </div>
+            )}
+
             {uploadMode === "json" ? (
               <>
                 <textarea
@@ -426,20 +455,32 @@ const AdminBookUpload = () => {
 
                 {/* Preview Table */}
                 {excelData.length > 0 && (
-                  <div className="mt-4 max-h-60 overflow-y-auto border rounded-lg">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-gray-100">
+                  <div className="mt-4 max-h-80 overflow-y-auto border rounded-lg bg-white">
+                    <div className="p-2 bg-yellow-50 border-b text-xs text-yellow-800">
+                      💡 Tip: Click on any cell to manually correct the Hindi text before uploading.
+                    </div>
+                    <table className="w-full text-sm text-left border-collapse">
+                      <thead className="bg-gray-100 sticky top-0">
                         <tr>
+                          <th className="px-3 py-2 border-b font-semibold">#</th>
                           {Object.keys(excelData[0]).map((key) => (
-                            <th key={key} className="px-3 py-2 border-b font-semibold">{key}</th>
+                            <th key={key} className="px-3 py-2 border-b font-semibold capitalize">{key}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {excelData.map((row, i) => (
                           <tr key={i} className="hover:bg-gray-50">
-                            {Object.values(row).map((val, j) => (
-                              <td key={j} className="px-3 py-1 border-b">{val}</td>
+                            <td className="px-3 py-1 border-b text-gray-400">{i + 1}</td>
+                            {Object.entries(row).map(([key, val], j) => (
+                              <td key={j} className="px-1 py-1 border-b">
+                                <input
+                                  type={typeof val === "number" ? "number" : "text"}
+                                  value={val}
+                                  onChange={(e) => handleTableChange(i, key, e.target.value)}
+                                  className={`w-full px-2 py-1 bg-transparent border border-transparent hover:border-gray-300 focus:bg-white focus:border-red-500 rounded outline-none ${isKrutidev(val) ? 'font-kruti' : ''}`}
+                                />
+                              </td>
                             ))}
                           </tr>
                         ))}
