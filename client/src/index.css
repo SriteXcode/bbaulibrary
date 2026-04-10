@@ -10,7 +10,8 @@
 
 .font-kruti {
   font-family: 'Kruti Dev 010', sans-serif !important;
-  font-size: 1.2rem; /* Krutidev usually looks smaller, so we bump it up */
+  font-size: 1.3rem !important; /* Krutidev needs to be larger to be readable */
+  line-height: 1.4 !important;
 }
 
 body {

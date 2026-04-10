@@ -12,34 +12,39 @@ export function isKrutidev(str) {
     // 1. If it has actual Hindi Unicode, it's not raw Krutidev ASCII
     if (/[\u0900-\u097F]/.test(str)) return false;
 
-    // 2. Krutidev signatures (Very specific clusters that don't appear in English)
-    const impossibleEnglish = [
-        'xzkeh', 'fodkl', 'fl)', 'uhfr', 'izkcU', 'izkS', '्र', '¼', '½'
+    // 2. Common English word bypass (Force English if these words exist)
+    const englishWords = ['and', 'the', 'of', 'science', 'food', 'history', 'trends', 'reflections', 'crime', 'punishment', 'raj', 'administration', 'during', 'viceroyalty', 'book'];
+    const lower = str.toLowerCase();
+    if (englishWords.some(word => lower.includes(word))) return false;
+
+    // 3. Strong Krutidev signatures (Almost never in English)
+    const strongSignatures = [
+        'xzkeh', 'fodkl', 'fl)', 'uhfr', 'izkcU', 'izkS', '्र', '¼', '½', 'xzke', 'lekt', ',oa', 'iqL'
     ];
+    if (strongSignatures.some(sig => lower.includes(sig))) return true;
+
+    // 4. Vowel Density Check (English is vowel-rich, Krutidev ASCII is not)
+    const vowelCount = (str.match(/[aeiou]/gi) || []).length;
+    const vowelDensity = vowelCount / str.length;
+    const wordCount = str.trim().split(/\s+/).length;
+
+    // 5. Symbol Detection (Krutidev uses these for specific Hindi letters)
+    const krutiSpecificSymbols = /[ñòôéæçª;\[\]\\{}|_]/.test(str);
     
-    const lowercase = str.toLowerCase();
-    const hasImpossible = impossibleEnglish.some(sig => lowercase.includes(sig));
-    
-    // 3. Check for specific Krutidev symbols that aren't used in English book titles
-    const hasKrutiSymbols = /[ñòôéæçª]/.test(str);
+    // --- DECISION LOGIC ---
 
-    // 4. Refined English Initial Check
-    // If it's a name with initials like "A. K. Singh", it's English.
-    const isEnglishWithInitials = /^[A-Z]\.\s[A-Z]\.\s[A-Z][a-z]+/.test(str) || 
-                                 /^[A-Z][a-z]+\s[A-Z]\.\s[A-Z]\.\s/.test(str) ||
-                                 /^[A-Z]\.\s[A-Z][a-z]+/.test(str);
+    // A. High vowel density + multiple words = English
+    if (wordCount >= 2 && vowelDensity > 0.28) return false;
 
-    // 5. Basic English Title Check
-    const isEnglishTitle = /^[A-Za-z0-9\s,.\-()&:'"/]+$/.test(str) && 
-                          (str.includes(' ') || str.length > 10) &&
-                          !hasKrutiSymbols;
-    
-    // 6. Signature patterns that are 100% Krutidev
-    const hasKrutiMatra = /\bf[vlkdghj]/.test(lowercase) || /iz[kdi]/.test(lowercase);
+    // B. Krutidev "f" prefix (f + consonant)
+    const hasKrutiF = /\bf[^aeiou\s]/.test(lower);
+    if (hasKrutiF) return true;
 
-    // If it's English with initials or a standard title, return false
-    if (isEnglishWithInitials || (isEnglishTitle && !hasImpossible && !hasKrutiMatra)) return false;
+    // C. Krutidev symbols
+    if (krutiSpecificSymbols) return true;
 
-    // Final check: It must have a signature OR look like "junk" ASCII
-    return hasImpossible || hasKrutiSymbols || hasKrutiMatra || (str.length > 5 && !/[aeiou]/i.test(str));
+    // D. Low vowel density catch-all (Junk ASCII)
+    if (str.length > 8 && vowelDensity < 0.22) return true;
+
+    return false;
 }

@@ -172,6 +172,7 @@ const AdminBookUpload = () => {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [dragActive, setDragActive] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Handle single field change
   // const handleSingleChange = (e) => {
@@ -238,11 +239,20 @@ const AdminBookUpload = () => {
 
         // Map data to match Book model
         const validData = parsedData
-          .filter((row) => (row.title || row.Title) && (row.totalCopies || row.totalcopies || row.copiesAvailable))
+          .filter((row) => {
+             // Robust filter: Check for any variation of title and any variation of quantity/copies
+             const rowKeys = Object.keys(row);
+             const hasTitle = rowKeys.some(k => ["title", "book", "name"].some(v => k.toLowerCase().includes(v)));
+             const hasCopies = rowKeys.some(k => ["copies", "total", "quantity", "available"].some(v => k.toLowerCase().includes(v)));
+             return hasTitle && hasCopies;
+          })
           .map((row) => {
-            const getField = (keys) => {
-              const key = keys.find(k => row[k] !== undefined);
-              return row[key] !== undefined ? String(row[key]).trim() : "";
+            const rowKeys = Object.keys(row);
+            const getField = (searchTerms) => {
+              const foundKey = rowKeys.find(rk => 
+                searchTerms.some(term => rk.toLowerCase() === term.toLowerCase() || rk.toLowerCase().includes(term.toLowerCase()))
+              );
+              return foundKey !== undefined ? String(row[foundKey]).trim() : "";
             };
 
             const convert = (val) => {
@@ -250,22 +260,23 @@ const AdminBookUpload = () => {
               return val ? String(val).trim() : "";
             };
 
-            const total = Number(getField(["totalCopies", "totalcopies", "Total Copies", "copies"])) || 1;
-            const available = getField(["copiesAvailable", "available", "Available"]) 
-              ? Math.min(Number(getField(["copiesAvailable", "available", "Available"])), total)
-              : total;
+            const totalRaw = getField(["totalCopies", "totalcopies", "Total Copies", "copies", "quantity", "qty"]);
+            const availableRaw = getField(["copiesAvailable", "available", "Available", "stock"]);
+            
+            const total = totalRaw !== "" ? Number(totalRaw) : (availableRaw !== "" ? Number(availableRaw) : 1);
+            const available = availableRaw !== "" ? Math.min(Number(availableRaw), total) : total;
 
             return {
-              title: convert(getField(["title", "Title", "TITLE"])),
-              author: convert(getField(["author", "Author", "AUTHOR"])),
-              department: convert(getField(["department", "Department", "DEPARTMENT"])),
-              totalCopies: total,
-              copiesAvailable: available,
+              title: convert(getField(["title", "Title", "Book Title", "Name"])),
+              author: convert(getField(["author", "Author", "Writer"])),
+              department: convert(getField(["department", "Department", "Dept", "Subject"])),
+              totalCopies: isNaN(total) ? 1 : total,
+              copiesAvailable: isNaN(available) ? (isNaN(total) ? 1 : total) : available,
             };
           });
 
         if (validData.length === 0) {
-          setError("No valid rows with required fields found.");
+          setError("No valid rows with required fields found. Ensure your Excel has 'Title' and 'Total Copies' columns.");
           return;
         }
 
@@ -277,6 +288,17 @@ const AdminBookUpload = () => {
     } catch (err) {
       setError("Failed to read Excel file. Please check format.");
     }
+  };
+
+  const handleAddRow = () => {
+    setExcelData((prev) => [
+      ...prev,
+      { title: "", author: "", department: "", totalCopies: 1, copiesAvailable: 1 },
+    ]);
+  };
+
+  const handleDeleteRow = (index) => {
+    setExcelData((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleDrop = (e) => {
@@ -455,10 +477,32 @@ const AdminBookUpload = () => {
 
                 {/* Preview Table */}
                 {excelData.length > 0 && (
-                  <div className="mt-4 max-h-80 overflow-y-auto border rounded-lg bg-white">
-                    <div className="p-2 bg-yellow-50 border-b text-xs text-yellow-800">
-                      💡 Tip: Click on any cell to manually correct the Hindi text before uploading.
+                  <div className="mt-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-sm font-bold text-gray-700">Data Preview:</h4>
+                      <div className="flex space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsEditing(!isEditing)}
+                          className={`text-xs px-3 py-1 rounded shadow-sm transition ${isEditing ? 'bg-green-600 text-white' : 'bg-gray-600 text-white'}`}
+                        >
+                          {isEditing ? "✅ Save Changes" : "✏️ Enable Manual Editing"}
+                        </button>
+                        {isEditing && (
+                          <button
+                            type="button"
+                            onClick={handleAddRow}
+                            className="text-xs bg-blue-600 text-white px-3 py-1 rounded shadow-sm"
+                          >
+                            ➕ Add Row
+                          </button>
+                        )}
+                      </div>
                     </div>
+                    <div className="max-h-80 overflow-y-auto border rounded-lg bg-white">
+                      <div className="p-2 bg-yellow-50 border-b text-xs text-yellow-800">
+                        💡 Tip: {isEditing ? "Editing is enabled. You can change values or delete rows." : "Click 'Enable Manual Editing' to make changes."}
+                      </div>
                     <table className="w-full text-sm text-left border-collapse">
                       <thead className="bg-gray-100 sticky top-0">
                         <tr>
@@ -466,6 +510,7 @@ const AdminBookUpload = () => {
                           {Object.keys(excelData[0]).map((key) => (
                             <th key={key} className="px-3 py-2 border-b font-semibold capitalize">{key}</th>
                           ))}
+                          {isEditing && <th className="px-3 py-2 border-b font-semibold">Actions</th>}
                         </tr>
                       </thead>
                       <tbody>
@@ -477,16 +522,30 @@ const AdminBookUpload = () => {
                                 <input
                                   type={typeof val === "number" ? "number" : "text"}
                                   value={val}
+                                  readOnly={!isEditing}
                                   onChange={(e) => handleTableChange(i, key, e.target.value)}
-                                  className={`w-full px-2 py-1 bg-transparent border border-transparent hover:border-gray-300 focus:bg-white focus:border-red-500 rounded outline-none ${isKrutidev(val) ? 'font-kruti' : ''}`}
+                                  className={`w-full px-2 py-1 bg-transparent border border-transparent ${isEditing ? 'hover:border-gray-300 focus:bg-white focus:border-red-500' : ''} rounded outline-none ${isKrutidev(val) ? 'font-kruti' : ''}`}
                                 />
                               </td>
                             ))}
+                            {isEditing && (
+                              <td className="px-3 py-1 border-b text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteRow(i)}
+                                  className="text-red-600 hover:text-red-800 transition"
+                                  title="Delete Row"
+                                >
+                                  🗑️
+                                </button>
+                              </td>
+                            )}
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
+                </div>
                 )}
               </>
             )}
