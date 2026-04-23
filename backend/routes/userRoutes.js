@@ -4,18 +4,39 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const IssuedBook = require('../models/Issue');
 const { protect, authorize } = require('../middleware/auth');
+const cloudinary = require('cloudinary').v2;
 
 const router = express.Router();
+
+// Cloudinary configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 
 // Register
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, libraryCardNo, phone, department, semester, role } = req.body;
+    const { name, email, password, libraryCardNo, phone, department, semester, role, profilePhoto } = req.body;
     
     // Server-side validation check
     if (!name || !email || !password || !libraryCardNo || !phone || !department || !semester) {
        return res.status(400).json({ error: "All fields are required" });
+    }
+
+    let profilePhotoUrl = "";
+    if (profilePhoto) {
+      try {
+        const uploadRes = await cloudinary.uploader.upload(profilePhoto, {
+          folder: 'bbau_library_profiles',
+        });
+        profilePhotoUrl = uploadRes.secure_url;
+      } catch (uploadErr) {
+        console.error("Cloudinary Upload Error:", uploadErr);
+        return res.status(500).json({ error: "Failed to upload profile photo" });
+      }
     }
 
     const hashed = await bcrypt.hash(password, 10);
@@ -27,7 +48,8 @@ router.post("/register", async (req, res) => {
       phone, 
       department, 
       semester, 
-      role 
+      role,
+      profilePhoto: profilePhotoUrl
     });
     await user.save();
     console.log(`User registered: ${email}`);
@@ -57,7 +79,21 @@ router.post("/login", async (req, res) => {
 
 
 
-// --- A. GET All Users ---
+// --- A. GET Current User Profile ---
+// GET /api/users/me
+router.get('/me', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found.' });
+        }
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ error: 'Error fetching profile: ' + err.message });
+    }
+});
+
+// --- B. GET All Users ---
 // GET /api/users
 router.get('/', protect, authorize('admin'), async (req, res) => {
     try {
@@ -78,8 +114,21 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
         const userId = req.params.id;
         const updates = req.body;
         
-        // Prevent accidental password overwrite (handled separately via a reset route if needed)
+        // Prevent accidental password overwrite
         delete updates.password; 
+
+        // Handle profile photo upload if provided as base64
+        if (updates.profilePhoto && updates.profilePhoto.startsWith('data:image')) {
+            try {
+                const uploadRes = await cloudinary.uploader.upload(updates.profilePhoto, {
+                    folder: 'bbau_library_profiles',
+                });
+                updates.profilePhoto = uploadRes.secure_url;
+            } catch (uploadErr) {
+                console.error("Cloudinary Update Error:", uploadErr);
+                return res.status(500).json({ error: "Failed to upload new profile photo" });
+            }
+        }
 
         const user = await User.findByIdAndUpdate(userId, updates, {
             new: true,

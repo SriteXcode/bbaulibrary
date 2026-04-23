@@ -645,6 +645,7 @@ const AdminIssueManagement = () => {
   const [loading, setLoading] = useState(false);
   const [showFineModal, setShowFineModal] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState(null);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [submittedQuery, setSubmittedQuery] = useState("");
   
   // Pagination State
@@ -859,8 +860,22 @@ const AdminIssueManagement = () => {
             <div className="flex justify-between items-start flex-wrap gap-2">
               {/* Left Details */}
               <div className="flex-1 min-w-[250px]">
-                <p className="text-lg font-bold text-gray-900">{issue.book?.title || "Book Missing"}</p>
-                <p className="text-sm text-gray-600 mb-2">User: {issue.student?.name || "Deleted User"}</p>
+                <div className="flex items-center mb-3">
+                  <div className="flex-shrink-0 h-12 w-12 cursor-pointer" onClick={() => setSelectedPhoto(issue.student?.profilePhoto)}>
+                    {issue.student?.profilePhoto ? (
+                      <img className="h-12 w-12 rounded-full object-cover border-2 border-gray-200 hover:opacity-80 transition duration-150" src={issue.student.profilePhoto} alt="" title="Click to enlarge" />
+                    ) : (
+                      <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold border-2 border-gray-200">
+                        {issue.student?.name?.charAt(0) || '?'}
+                      </div>
+                    )}
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-lg font-bold text-gray-900">{issue.book?.title || "Book Missing"}</p>
+                    <p className="text-sm text-gray-600">User: {issue.student?.name || "Deleted User"}</p>
+                  </div>
+                </div>
+                
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                    <span>Dept: {issue.student?.department || "N/A"}</span>
                    <span>Sem: {issue.student?.semester || "N/A"}</span>
@@ -958,7 +973,7 @@ const AdminIssueManagement = () => {
 
       {/* Fine Confirmation Modal */}
       {showFineModal && selectedIssue && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+        <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-md">
           <div className="bg-white rounded-xl p-6 shadow-lg max-w-sm w-full text-center">
             <h4 className="text-lg font-semibold mb-2 text-gray-800">Pending Fine</h4>
             <p className="text-gray-600 mb-4">
@@ -980,6 +995,28 @@ const AdminIssueManagement = () => {
                 No, Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Image Enlargement Modal */}
+      {selectedPhoto && (
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-[60] p-4 backdrop-blur-md"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <div className="relative flex justify-center items-center animate-in zoom-in duration-300">
+            <img 
+              src={selectedPhoto} 
+              alt="Enlarged profile" 
+              className="max-h-[90vh] max-w-full rounded-lg shadow-2xl object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button 
+              className="absolute top-2.5 right-2.5 text-white bg-black bg-opacity-30 hover:bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center text-3xl font-light transition-all shadow-lg"
+              onClick={() => setSelectedPhoto(null)}
+            >
+              &times;
+            </button>
           </div>
         </div>
       )}

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import API from '../api';
 import { useNavigate } from 'react-router-dom';
+import Webcam from 'react-webcam';
 
 export default function Register() {
     const [formData, setFormData] = useState({
@@ -11,10 +12,25 @@ export default function Register() {
         phone: '',
         department: '',
         semester: '',
-        role: 'student', // Default role for registration
+        role: 'student',
     });
+    const [profilePhoto, setProfilePhoto] = useState(null);
     const [message, setMessage] = useState('');
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
+    const webcamRef = useRef(null);
     const navigate = useNavigate();
+
+    const videoConstraints = {
+        width: 1280,
+        height: 720,
+        facingMode: "user"
+    };
+
+    const capture = useCallback(() => {
+        const imageSrc = webcamRef.current.getScreenshot();
+        setProfilePhoto(imageSrc);
+        setIsCameraOpen(false);
+    }, [webcamRef]);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -22,16 +38,18 @@ export default function Register() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!profilePhoto) {
+            setMessage('Please capture a profile photo.');
+            return;
+        }
         setMessage('Registering...');
         try {
-            // Note: The backend route is /api/users/register
-            const res = await API.post('/api/users/register', formData);
+            const res = await API.post('/api/users/register', { ...formData, profilePhoto });
             setMessage('Registration successful! Redirecting to login...');
             setTimeout(() => {
                 navigate('/login');
             }, 1500);
         } catch (err) {
-            // Backend sends error in { error: '...' }
             setMessage(err.response?.data?.error || err.response?.data?.msg || 'Registration failed. Please check your details.');
         }
     };
@@ -41,6 +59,62 @@ export default function Register() {
             <h2 className="text-3xl font-extrabold text-gray-900 mb-6 text-center">Register</h2>
             <p className="text-red-600 text-center mb-4 font-medium">{message}</p>
             <form onSubmit={handleSubmit} className="bg-white shadow-xl rounded-xl p-8 space-y-4 auth-form">
+                
+                <div className="flex flex-col items-center mb-4">
+                    {profilePhoto ? (
+                        <div className="relative">
+                            <img src={profilePhoto} alt="Profile" className="w-32 h-32 rounded-full object-cover border-4 border-red-500 shadow-lg" />
+                            <button 
+                                type="button" 
+                                onClick={() => setIsCameraOpen(true)}
+                                className="absolute bottom-0 right-0 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition"
+                            >
+                                📷
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center border-4 border-dashed border-gray-400">
+                            {!isCameraOpen && (
+                                <button 
+                                    type="button" 
+                                    onClick={() => setIsCameraOpen(true)}
+                                    className="text-gray-600 font-semibold"
+                                >
+                                    Take Photo
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {isCameraOpen && (
+                    <div className="flex flex-col items-center space-y-2">
+                        <Webcam
+                            audio={false}
+                            ref={webcamRef}
+                            screenshotFormat="image/jpeg"
+                            videoConstraints={videoConstraints}
+                            className="rounded-lg shadow-md w-full"
+                        />
+                        <div className="flex space-x-2">
+                            <button 
+                                type="button" 
+                                onClick={capture}
+                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold transition"
+                            >
+                                Capture Photo
+                            </button>
+                            <button 
+                                type="button" 
+                                onClick={() => setIsCameraOpen(false)}
+                                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-bold transition"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 <input
                     type="text"
                     name="name"
@@ -104,10 +178,6 @@ export default function Register() {
                     required
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"
                 />
-                {/* <select name="role" value={formData.role} onChange={handleChange}>
-                    <option value="student">Student</option>
-                    <option value="faculty">Faculty</option>
-                </select> */}
                 <button 
                     type="submit" 
                     className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition duration-150 shadow-md"

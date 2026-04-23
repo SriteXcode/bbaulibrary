@@ -65,6 +65,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import LibrarianDashboard from './pages/LibrarianDashboard' // NEW IMPORT
 import MyIssues from './pages/MyIssues' // NEW IMPORT
+import Profile from './pages/Profile' // NEW IMPORT
 import useAuth from './hooks/useAuth'
 
 export default function App(){
@@ -148,8 +149,8 @@ export default function App(){
                         ) : (
                             <>
                                 {isLoggedIn && (
-                                    <Link to="/my-issues" className="text-white hover:text-red-400 transition duration-150">
-                                        My Issues
+                                    <Link to="/profile" className="text-white hover:text-red-400 transition duration-150">
+                                        Profile
                                     </Link>
                                 )}
                                 <button 
@@ -193,8 +194,8 @@ export default function App(){
                         ) : (
                             <>
                                 {isLoggedIn && (
-                                    <Link to="/my-issues" className="text-white hover:text-red-400" onClick={() => setIsMenuOpen(false)}>
-                                        My Issues
+                                    <Link to="/profile" className="text-white hover:text-red-400" onClick={() => setIsMenuOpen(false)}>
+                                        Profile
                                     </Link>
                                 )}
                                 <button 
@@ -217,6 +218,7 @@ export default function App(){
                 <Route path="/admin" element={<LibrarianDashboard />} /> 
                 {/* NEW ROUTE */}
                 <Route path="/my-issues" element={<MyIssues />} />
+                <Route path="/profile" element={<Profile />} />
             </Routes>
         </>
     )
